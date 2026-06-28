@@ -13,4 +13,4 @@ In this custom lab, as Snort and traditional intrusion detection systems rely on
 
 ## Reconnaissance:
 A comprehensive nmap scan was executed from Kali Linux to identify vulnerable ports and attack surfaces
-<img src="nmap-sV.png" width="660" alt="Local rules">
+<img src="nmap-sV.png" width="660" alt="nmap -sV">
