@@ -1,1 +1,1 @@
-# hybrid-anomaly-framework
+# Hybrid-Anomaly-Framework
