@@ -64,7 +64,7 @@ Structured behavioral features were fed into the custom network layers to outlin
 
 <img src="model accuracy.png" width="550" alt="model accuracy">
 
-Figure 10: Custom neural network optimization showcasing training metrics and loss minimization. The validation accuracy reached 92.47%, with a decision rate of 100% and a result of 10 True positives & 0 False negatives, this proves the mathematical stability of the forward and backward propagations built on NumPy matrix operations is able to detect all attacks missed by traditional signature-based detection by adding a stratified split to ensure a proper training to test set ratio.
+Figure 10: Custom neural network optimization showcasing training metrics and loss minimization. The validation accuracy reached 92.74%, with a decision rate of 100% and a result of 10 True positives & 0 False negatives, this proves the mathematical stability of the forward and backward propagations built on NumPy matrix operations is able to detect all attacks missed by traditional signature-based detection by adding a stratified split to ensure a proper training to test set ratio.
 
 <img src="stealth packets.png" width="550" alt="stealth packets">
 
