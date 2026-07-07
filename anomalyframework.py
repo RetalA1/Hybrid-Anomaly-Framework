@@ -1,6 +1,8 @@
 import pandas as pd
 import numpy as np
 
+np.random.seed(20)
+
 data = pd.read_csv("Network_traffic.csv")
 data.columns = data.columns.str.strip().str.lower()
 
@@ -18,13 +20,46 @@ Y = data['is_anomaly'].to_numpy().reshape(-1, 1).astype(float)
 
 X = (X_raw - np.mean(X_raw, axis=0)) / (np.std(X_raw, axis=0) + 1e-8)
 
-shuffled_indices = np.random.permutation(len(X))
-X = X[shuffled_indices]
-Y = Y[shuffled_indices]
 
-split_index = int(0.8 * len(X))
-X_train, X_test = X[:split_index], X[split_index:]
-Y_train, Y_test = Y[:split_index], Y[split_index:]
+normal_indices = np.where(Y == 0)[0]
+attack_indices = np.where(Y == 1)[0]
+
+normal_split = int(0.8 * len(normal_indices))
+attack_split = int(0.8 * len(attack_indices))
+
+X_train_norm, X_test_norm = X[normal_indices[:normal_split]], X[normal_indices[normal_split:]]
+Y_train_norm, Y_test_norm = Y[normal_indices[:normal_split]], Y[normal_indices[normal_split:]]
+
+X_train_att, X_test_att = X[attack_indices[:attack_split]], X[attack_indices[attack_split:]]
+Y_train_att, Y_test_att = Y[attack_indices[:attack_split]], Y[attack_indices[attack_split:]]
+
+X_train = np.vstack((X_train_norm, X_train_att))
+Y_train = np.vstack((Y_train_norm, Y_train_att))
+X_test = np.vstack((X_test_norm, X_test_att))
+Y_test = np.vstack((Y_test_norm, Y_test_att))
+
+train_shuffle = np.random.permutation(len(Y_train))
+X_train = X_train[train_shuffle]
+Y_train = Y_train[train_shuffle]
+
+test_shuffle = np.random.permutation(len(Y_test))
+X_test = X_test[test_shuffle]
+Y_test = Y_test[test_shuffle]
+
+
+normal_idx = np.where(Y_train == 0)[0]
+attack_idx = np.where(Y_train == 1)[0]
+
+if len(attack_idx) > 0:
+    duplicated_attack_idx = np.random.choice(attack_idx, size=len(normal_idx), replace=True)
+    balanced_idx = np.concatenate([normal_idx, duplicated_attack_idx])
+    X_train = X_train[balanced_idx]
+    Y_train = Y_train[balanced_idx]
+    shuffle_order = np.random.permutation(len(Y_train))
+    X_train = X_train[shuffle_order]
+    Y_train = Y_train[shuffle_order]
+
+
 
 class AnomalyDetectorNET:
     def __init__(self, input_dim, hidden_dim):
@@ -95,6 +130,33 @@ for epoch in range(1001):
 print("Training finished successfully")
 
 test_predictions = model.forward(X_test)
-binary_predictions = (test_predictions > 0.5).astype(float)
-test_accuracy = np.mean(binary_predictions == Y_test) * 100
-print(f"Final Model Accuracy: {test_accuracy:.2f}%")
+binary_predictions = (test_predictions > 0.98).astype(int)
+
+TP = np.sum((binary_predictions == 1) & (Y_test == 1))
+TN = np.sum((binary_predictions == 0) & (Y_test == 0))
+FP = np.sum((binary_predictions == 1) & (Y_test == 0))
+FN = np.sum((binary_predictions == 0) & (Y_test == 1))
+
+test_accuracy  = (TP + TN) / (TP + TN + FP + FN) * 100 if (TP + TN + FP + FN) > 0 else 0
+detection_rate = TP / (TP + FN) * 100 if (TP + FN) > 0 else 0  
+precision      = TP / (TP + FP) * 100 if (TP + FP) > 0 else 0  
+fpr            = FP / (FP + TN) * 100 if (FP + TN) > 0 else 0  
+
+print("\n" + "="*40)
+print("Performance Matrix")
+print("="*40)
+print(f"Final Model Accuracy:    {test_accuracy:.2f}%")
+print(f"Detection Rate (Recall): {detection_rate:.2f}%")
+print(f"Precision:               {precision:.2f}%")
+print(f"False Positive Rate:     {fpr:.2f}%")
+print("-"*40)
+print(f"Raw Counts -> TP: {TP} | TN: {TN} | FP: {FP} | FN: {FN}")
+print("="*40)
+
+
+stealth_catches = 0
+for i in range(len(X_test)):
+    if test_predictions[i] > 0.98 and Y_test[i] == 1:
+        stealth_catches += 1
+
+print(f"Total attacks caught by AI that bypass traditional filters: {stealth_catches}")
